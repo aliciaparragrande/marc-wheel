@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Ruleta de Marc</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --ink:#1B2A4A;
+  --ink-light:#24365C;
+  --paper:#FBF3E7;
+  --coral:#FF6F59;
+  --citrus:#F4C430;
+  --leaf:#8AC926;
+  --teal:#2EC4B6;
+  --violet:#9D5CFF;
+  --gold-line: rgba(244,196,48,0.35);
+}
+
+*{box-sizing:border-box;}
+body{margin:0;}
+
+.app{
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at 20% -10%, rgba(244,196,48,0.10), transparent 45%),
+    radial-gradient(ellipse at 100% 10%, rgba(157,92,255,0.12), transparent 40%),
+    var(--ink);
+  color:var(--paper);
+  font-family:'Inter', sans-serif;
+  padding:28px 16px 60px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  position:relative;
+  overflow-x:hidden;
+}
+
+.topbar{
+  width:100%;
+  max-width:520px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.brand{
+  font-family:'Baloo 2', sans-serif;
+  font-weight:800;
+  font-size:28px;
+  line-height:1.05;
+  letter-spacing:0.2px;
+}
+.brand span{ color:var(--citrus); }
+
+.tagline{
+  font-size:13.5px;
+  color:rgba(251,243,231,0.65);
+  margin-top:6px;
+  max-width:320px;
+  font-weight:500;
+}
+
+.lang-toggle{
+  display:flex;
+  border:1.5px solid rgba(251,243,231,0.25);
+  border-radius:999px;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.lang-toggle button{
+  border:none;
+  background:transparent;
+  color:rgba(251,243,231,0.6);
+  font-family:'Inter';
+  font-weight:700;
+  font-size:12.5px;
+  padding:7px 13px;
+  cursor:pointer;
+  transition:.15s;
+}
+.lang-toggle button.active{
+  background:var(--citrus);
+  color:var(--ink);
+}
+
+.chips{
+  width:100%;
+  max-width:520px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:22px 0 6px;
+  justify-content:center;
+}
+.chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 12px;
+  border-radius:999px;
+  border:1.5px solid rgba(251,243,231,0.18);
+  background:rgba(251,243,231,0.04);
+  font-size:12.5px;
+  font-weight:600;
+  cursor:pointer;
+  color:rgba(251,243,231,0.55);
+  transition:.15s;
+  user-select:none;
+}
+.chip.on{
+  color:var(--ink);
+  border-color:transparent;
+}
+.chip .dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+.wheel-zone{
+  position:relative;
+  margin-top:26px;
+  width:min(88vw, 360px);
+  height:min(88vw, 360px);
+}
+
+.pointer{
+  position:absolute;
+  top:-14px;
+  left:50%;
+  transform:translateX(-50%);
+  width:0; height:0;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-top:24px solid var(--paper);
+  z-index:5;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35));
+}
+
+.wheel-ring{
+  position:absolute;
+  inset:-8px;
+  border-radius:50%;
+  background:repeating-conic-gradient(var(--paper) 0deg 6deg, transparent 6deg 14deg);
+  opacity:0.35;
+}
+
+.wheel{
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.35), inset 0 0 0 6px rgba(27,42,74,0.9);
+  transition: transform 4.2s cubic-bezier(0.15,0.65,0.1,1);
+}
+
+.icon-wrap{
+  position:absolute;
+  top:50%; left:50%;
+  width:0; height:0;
+}
+.icon{
+  position:absolute;
+  font-size:26px;
+  line-height:1;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.hub{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:78px; height:78px;
+  border-radius:50%;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Baloo 2';
+  font-weight:800;
+  font-size:15px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  cursor:pointer;
+  z-index:4;
+  box-shadow:0 6px 16px rgba(0,0,0,0.35), 0 0 0 4px var(--ink);
+  border:3px solid var(--citrus);
+  transition:.15s;
+}
+.hub:active{ transform:translate(-50%,-50%) scale(0.94); }
+.hub.spinning{ opacity:0.6; cursor:default; }
+
+.add-row{
+  margin-top:28px;
+  width:100%;
+  max-width:420px;
+  text-align:center;
+}
+.link-btn{
+  background:none;
+  border:none;
+  color:rgba(251,243,231,0.6);
+  font-size:13px;
+  font-weight:600;
+  text-decoration:underline;
+  cursor:pointer;
+  font-family:'Inter';
+}
+
+.panel{
+  margin-top:14px;
+  width:100%;
+  max-width:420px;
+  background:var(--ink-light);
+  border:1px solid rgba(251,243,231,0.12);
+  border-radius:16px;
+  padding:16px;
+  display:none;
+}
+.panel.show{ display:block; }
+.panel label{
+  display:block;
+  font-size:11.5px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+  color:rgba(251,243,231,0.5);
+  margin:10px 0 4px;
+}
+.panel input, .panel select, .panel textarea{
+  width:100%;
+  background:rgba(251,243,231,0.06);
+  border:1px solid rgba(251,243,231,0.18);
+  border-radius:8px;
+  padding:9px 10px;
+  color:var(--paper);
+  font-family:'Inter';
+  font-size:14px;
+}
+.panel textarea{ resize:vertical; min-height:50px; }
+.panel-actions{
+  margin-top:14px;
+  display:flex;
+  gap:10px;
+}
+.btn{
+  border:none;
+  border-radius:10px;
+  padding:10px 16px;
+  font-family:'Inter';
+  font-weight:700;
+  font-size:13.5px;
+  cursor:pointer;
+}
+.btn-primary{ background:var(--citrus); color:var(--ink); }
+.btn-ghost{ background:transparent; color:rgba(251,243,231,0.55); border:1px solid rgba(251,243,231,0.2); }
+
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(10,15,30,0.72);
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  z-index:20;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+}
+.overlay.show{ opacity:1; pointer-events:auto; }
+
+.ticket{
+  width:100%;
+  max-width:420px;
+  background:var(--paper);
+  color:var(--ink);
+  border-radius:22px 22px 0 0;
+  padding:28px 26px 26px;
+  transform:translateY(30px);
+  transition:.3s;
+  position:relative;
+  text-align:center;
+}
+.overlay.show .ticket{ transform:translateY(0); }
+.ticket::before{
+  content:"";
+  position:absolute;
+  top:-1px; left:50%;
+  transform:translateX(-50%);
+  width:52px; height:5px;
+  border-radius:3px;
+  background:rgba(27,42,74,0.15);
+}
+.ticket::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:78px;
+  height:0;
+  border-top:2px dashed rgba(27,42,74,0.2);
+}
+.ticket-icon{ font-size:52px; }
+.ticket-eyebrow{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--coral);
+  margin-top:8px;
+}
+.ticket-name{
+  font-family:'Baloo 2';
+  font-weight:800;
+  font-size:24px;
+  margin:6px 0 10px;
+  line-height:1.15;
+}
+.ticket-intention{
+  font-size:14.5px;
+  font-style:italic;
+  color:rgba(27,42,74,0.75);
+  margin-bottom:20px;
+  padding:0 6px;
+}
+.ticket-actions{
+  display:flex;
+  gap:10px;
+  margin-top:24px;
+}
+.ticket-actions .btn{ flex:1; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="topbar">
+    <div>
+      <div class="brand" id="brandText">La Ruleta de <span>Marc</span></div>
+      <div class="tagline" id="tagline">Hoy elegimos una cosa, y la vivimos de verdad.</div>
+    </div>
+    <div class="lang-toggle">
+      <button id="btnEs" class="active">ES</button>
+      <button id="btnEn">EN</button>
+    </div>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="wheel-zone">
+    <div class="wheel-ring"></div>
+    <div class="pointer"></div>
+    <div class="wheel" id="wheel"></div>
+    <div class="hub" id="hub">GIRAR</div>
+  </div>
+
+  <div class="add-row">
+    <button class="link-btn" id="toggleAdd">+ Añadir una actividad propia</button>
+  </div>
+
+  <div class="panel" id="panel">
+    <label id="lblName">Nombre de la actividad</label>
+    <input type="text" id="inpName" placeholder="Ej. Ver las nubes desde la terraza">
+    <label id="lblCat">Categoría</label>
+    <select id="inpCat"></select>
+    <label id="lblIcon">Icono (opcional, un emoji)</label>
+    <input type="text" id="inpIcon" placeholder="🌟" maxlength="2">
+    <label id="lblIntent">Frase de presencia (opcional)</label>
+    <textarea id="inpIntent" placeholder="Vamos a disfrutar este momento juntos."></textarea>
+    <div class="panel-actions">
+      <button class="btn btn-primary" id="saveActivity">Guardar</button>
+      <button class="btn btn-ghost" id="cancelActivity">Cancelar</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="ticket">
+    <div class="ticket-icon" id="ticketIcon">🎨</div>
+    <div class="ticket-eyebrow" id="ticketEyebrow">HOY TOCA</div>
+    <div class="ticket-name" id="ticketName">Pintar juntos</div>
+    <div class="ticket-intention" id="ticketIntention">Vamos a mirar los colores despacio.</div>
+    <div class="ticket-actions">
+      <button class="btn btn-ghost" id="ticketClose">Cerrar</button>
+      <button class="btn btn-primary" id="ticketAgain">Girar otra vez</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATS = {
+  home:    { es:"Creativa en casa", en:"Creative at home", color:"#FF6F59" },
+  cooking: { es:"Cocina",           en:"Cooking",          color:"#F4C430" },
+  outdoor: { es:"Aire libre",       en:"Outdoors",         color:"#8AC926" },
+  presence:{ es:"Juego presente",   en:"Present play",     color:"#2EC4B6" },
+  culture: { es:"Cultura",          en:"Culture",          color:"#9D5CFF" },
+};
+
+let activities = [
+  {cat:"home", icon:"🎨", es:"Pintar un cuadro juntos", en:"Paint a picture together",
+   ies:"Vamos a mirar los colores despacio y disfrutar de cada trazo.", ien:"Let's look at the colors slowly and enjoy every brushstroke."},
+  {cat:"home", icon:"⛺", es:"Construir una cabaña de mantas", en:"Build a blanket fort",
+   ies:"Vamos a crear nuestro propio rincón, solo para nosotros dos.", ien:"Let's build our own little corner, just for the two of us."},
+  {cat:"home", icon:"🧸", es:"Jugar con plastilina", en:"Play with playdough",
+   ies:"Vamos a tocar, apretar y crear sin prisa ninguna.", ien:"Let's touch, squeeze and create with no rush at all."},
+  {cat:"home", icon:"✏️", es:"Dibujar el retrato del otro", en:"Draw each other's portrait",
+   ies:"Vamos a mirarnos de verdad antes de dibujar.", ien:"Let's really look at each other before we draw."},
+  {cat:"home", icon:"🧩", es:"Montar un puzzle", en:"Build a puzzle",
+   ies:"Vamos a tener paciencia, pieza a pieza.", ien:"Let's be patient, one piece at a time."},
+  {cat:"cooking", icon:"🍪", es:"Hornear galletas", en:"Bake cookies",
+   ies:"Vamos a oler, mezclar y esperar juntos a que estén listas.", ien:"Let's smell, mix, and wait together for them to be ready."},
+  {cat:"cooking", icon:"🍕", es:"Hacer una pizza casera", en:"Make a homemade pizza",
+   ies:"Vamos a elegir los ingredientes con calma y decorarla a nuestra manera.", ien:"Let's pick the toppings calmly and decorate it our way."},
+  {cat:"cooking", icon:"🍓", es:"Preparar brochetas de fruta", en:"Make fruit skewers",
+   ies:"Vamos a fijarnos en los colores y sabores, uno por uno.", ien:"Let's notice each color and flavor, one at a time."},
+  {cat:"outdoor", icon:"🏖️", es:"Pasear por la playa", en:"Walk on the beach",
+   ies:"Vamos a caminar despacio y sentir la arena bajo los pies.", ien:"Let's walk slowly and feel the sand under our feet."},
+  {cat:"outdoor", icon:"🗺️", es:"Caza del tesoro en el parque", en:"Treasure hunt in the park",
+   ies:"Vamos a observar todo lo que nos rodea con ojos curiosos.", ien:"Let's notice everything around us with curious eyes."},
+  {cat:"outdoor", icon:"🌱", es:"Plantar algo pequeño", en:"Plant something small",
+   ies:"Vamos a cuidar algo vivo y ver cómo crece, poco a poco.", ien:"Let's take care of something alive and watch it grow, slowly."},
+  {cat:"outdoor", icon:"🫧", es:"Jugar con burbujas y agua", en:"Play with bubbles and water",
+   ies:"Vamos a reírnos y a mojarnos un poquito, sin preocuparnos.", ien:"Let's laugh and get a little wet, without worrying."},
+  {cat:"presence", icon:"💃", es:"Bailar canciones favoritas", en:"Dance to favorite songs",
+   ies:"Vamos a mover el cuerpo y sentir la música, sin pensar en nada más.", ien:"Let's move our bodies and feel the music, without thinking of anything else."},
+  {cat:"presence", icon:"📖", es:"Inventar una historia juntos", en:"Make up a story together",
+   ies:"Vamos a imaginar un mundo nuevo, entre los dos.", ien:"Let's imagine a whole new world, just the two of us."},
+  {cat:"presence", icon:"🎭", es:"Leer un cuento y actuarlo", en:"Read a story and act it out",
+   ies:"Vamos a meternos de verdad en el cuento.", ien:"Let's really step inside the story."},
+  {cat:"presence", icon:"🔭", es:"Jugar a ser exploradores", en:"Play at being explorers",
+   ies:"Vamos a descubrir algo nuevo hoy, aunque sea pequeño.", ien:"Let's discover something new today, even something small."},
+  {cat:"culture", icon:"🏛️", es:"Visitar el MARQ o un museo", en:"Visit the MARQ or a museum",
+   ies:"Vamos a mirar despacio y preguntarnos cosas sobre lo que vemos.", ien:"Let's look slowly and wonder about what we see."},
+  {cat:"culture", icon:"🎵", es:"Escuchar música y adivinar instrumentos", en:"Listen to music and guess instruments",
+   ies:"Vamos a cerrar los ojos y escuchar de verdad.", ien:"Let's close our eyes and really listen."},
+];
+
+let lang = "es";
+let activeCats = new Set(Object.keys(CATS));
+let currentRotation = 0;
+let spinning = false;
+
+const T = {
+  es:{
+    brand:'La Ruleta de <span>Marc</span>',
+    tagline:'Hoy elegimos una cosa, y la vivimos de verdad.',
+    spin:'GIRAR', spinning:'GIRANDO…',
+    addLink:'+ Añadir una actividad propia',
+    lblName:'Nombre de la actividad', phName:'Ej. Ver las nubes desde la terraza',
+    lblCat:'Categoría', lblIcon:'Icono (opcional, un emoji)',
+    lblIntent:'Frase de presencia (opcional)', phIntent:'Vamos a disfrutar este momento juntos.',
+    save:'Guardar', cancel:'Cancelar',
+    eyebrow:'HOY TOCA', close:'Cerrar', again:'Girar otra vez',
+    tooFew:'Elige al menos una categoría para poder girar.',
+  },
+  en:{
+    brand:'Marc\'s Activity Wheel',
+    tagline:'Today we pick one thing, and we really live it.',
+    spin:'SPIN', spinning:'SPINNING…',
+    addLink:'+ Add your own activity',
+    lblName:'Activity name', phName:'E.g. Watch the clouds from the balcony',
+    lblCat:'Category', lblIcon:'Icon (optional, an emoji)',
+    lblIntent:'Presence line (optional)', phIntent:"Let's enjoy this moment together.",
+    save:'Save', cancel:'Cancel',
+    eyebrow:"TODAY'S PICK", close:'Close', again:'Spin again',
+    tooFew:'Pick at least one category to spin.',
+  }
+};
+
+function el(id){ return document.getElementById(id); }
+
+function renderChips(){
+  const wrap = el('chips');
+  wrap.innerHTML = '';
+  Object.entries(CATS).forEach(([key, c])=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (activeCats.has(key) ? ' on' : '');
+    chip.style.background = activeCats.has(key) ? c.color : '';
+    chip.innerHTML = `<span class="dot" style="background:${c.color}"></span>${c[lang]}`;
+    chip.onclick = ()=>{
+      if(activeCats.has(key)) activeCats.delete(key); else activeCats.add(key);
+      renderChips(); renderWheel();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+function pool(){
+  return activities.filter(a=>activeCats.has(a.cat));
+}
+
+function renderWheel(){
+  const items = pool();
+  const wheel = el('wheel');
+  wheel.innerHTML = '';
+  const n = items.length || 1;
+  const seg = 360/n;
+  const stops = items.map((a,i)=> `${CATS[a.cat].color} ${(i*seg).toFixed(2)}deg ${((i+1)*seg).toFixed(2)}deg`).join(', ');
+  wheel.style.background = items.length ? `conic-gradient(from 0deg, ${stops})` : 'rgba(251,243,231,0.08)';
+
+  items.forEach((a,i)=>{
+    const center = i*seg + seg/2;
+    const wrap = document.createElement('div');
+    wrap.className = 'icon-wrap';
+    wrap.style.transform = `rotate(${center}deg)`;
+    const icon = document.createElement('div');
+    icon.className = 'icon';
+    icon.textContent = a.icon;
+    const radius = (wheel.clientWidth || 320)/2 - 46;
+    icon.style.transform = `translate(-13px, ${-radius}px)`;
+    wrap.appendChild(icon);
+    wheel.appendChild(wrap);
+  });
+}
+
+function mod(n, m){ return ((n % m) + m) % m; }
+
+function spin(){
+  const items = pool();
+  if(spinning) return;
+  if(items.length < 1){ alert(T[lang].tooFew); return; }
+  spinning = true;
+  const hub = el('hub');
+  hub.classList.add('spinning');
+  hub.textContent = T[lang].spinning;
+
+  const n = items.length;
+  const seg = 360/n;
+  const idx = Math.floor(Math.random()*n);
+  const segCenter = idx*seg + seg/2;
+  const jitter = (Math.random()-0.5) * (seg*0.5);
+  const desiredMod = mod(360 - segCenter + jitter, 360);
+
+  let base = currentRotation - mod(currentRotation, 360);
+  let target = base + 360*6 + desiredMod;
+  if(target <= currentRotation) target += 360;
+
+  currentRotation = target;
+  el('wheel').style.transform = `rotate(${currentRotation}deg)`;
+
+  setTimeout(()=>{
+    spinning = false;
+    hub.classList.remove('spinning');
+    hub.textContent = T[lang].spin;
+    showTicket(items[idx]);
+  }, 4300);
+}
+
+function showTicket(a){
+  el('ticketIcon').textContent = a.icon;
+  el('ticketEyebrow').textContent = T[lang].eyebrow;
+  el('ticketName').textContent = lang==='es' ? a.es : a.en;
+  el('ticketIntention').textContent = lang==='es' ? a.ies : a.ien;
+  el('overlay').classList.add('show');
+}
+
+function applyLang(){
+  const t = T[lang];
+  el('brandText').innerHTML = t.brand;
+  el('tagline').textContent = t.tagline;
+  el('hub').textContent = spinning ? t.spinning : t.spin;
+  el('toggleAdd').textContent = t.addLink;
+  el('lblName').textContent = t.lblName;
+  el('inpName').placeholder = t.phName;
+  el('lblCat').textContent = t.lblCat;
+  el('lblIcon').textContent = t.lblIcon;
+  el('lblIntent').textContent = t.lblIntent;
+  el('inpIntent').placeholder = t.phIntent;
+  el('saveActivity').textContent = t.save;
+  el('cancelActivity').textContent = t.cancel;
+  el('ticketClose').textContent = t.close;
+  el('ticketAgain').textContent = t.again;
+  el('btnEs').classList.toggle('active', lang==='es');
+  el('btnEn').classList.toggle('active', lang==='en');
+  renderChips();
+  renderCatSelect();
+}
+
+function renderCatSelect(){
+  const sel = el('inpCat');
+  sel.innerHTML = '';
+  Object.entries(CATS).forEach(([key,c])=>{
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = c[lang];
+    sel.appendChild(opt);
+  });
+}
+
+el('btnEs').onclick = ()=>{ lang='es'; applyLang(); };
+el('btnEn').onclick = ()=>{ lang='en'; applyLang(); };
+el('hub').onclick = spin;
+el('toggleAdd').onclick = ()=> el('panel').classList.toggle('show');
+el('cancelActivity').onclick = ()=> el('panel').classList.remove('show');
+el('saveActivity').onclick = ()=>{
+  const name = el('inpName').value.trim();
+  if(!name) return;
+  const cat = el('inpCat').value;
+  const icon = el('inpIcon').value.trim() || '🌟';
+  const intent = el('inpIntent').value.trim() || T[lang].phIntent;
+  activities.push({cat, icon, es:name, en:name, ies:intent, ien:intent});
+  el('inpName').value=''; el('inpIcon').value=''; el('inpIntent').value='';
+  el('panel').classList.remove('show');
+  renderWheel();
+};
+el('ticketClose').onclick = ()=> el('overlay').classList.remove('show');
+el('ticketAgain').onclick = ()=>{ el('overlay').classList.remove('show'); setTimeout(spin, 250); };
+
+window.addEventListener('resize', renderWheel);
+
+applyLang();
+renderWheel();
+</script>
+</body>
+</html>
